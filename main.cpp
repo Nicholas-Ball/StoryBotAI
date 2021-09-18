@@ -7,8 +7,8 @@
 #include <map>
 #include <cmath>
 
-const int CREATURE_COUNT = 40;
-const int GENERATIONS = 250;
+const int CREATURE_COUNT = 60;
+const int GENERATIONS = 100;
 
 /*
   Training Plan:
@@ -388,7 +388,7 @@ int main() {
         {
           //run network
           double r = creatures[sc]->Run((double)outs[num]);
-          r = r*10000.0;
+          r = r*100000.0;
           r += (10000000000000.0 * (r == 0));
 
           //run network on next input for error check
@@ -451,7 +451,7 @@ int main() {
         {
           //run network
           double r = creatures[nc]->Run((double)outs[num]);
-          r = r*10000.0;
+          r = r*100000.0;
 
           r += (10000000000000.0 * (r == 0));
 
@@ -536,12 +536,29 @@ int main() {
 
   bot.Load(j);
 
+  double out;
+
   for(int i = 0; i != inp.size();i++)
   {
-    bot.Run(inp[i]);
+    out = bot.Run(inp[i]);
+    out *= 100000.0;
   }
 
+  std::vector<int> sentence;
   //have bot print out 10 words
+  for(int i = 0; i != 10; i++)
+  {
+    out = bot.Run(out);
+    out *= 100000.0;
+
+    sentence.push_back((int)out);
+  }
+
+  auto s = IntsToText(sentence);
+  for(int i = 0; i != s.size();i++)
+  {
+    std::cout<<s[i]<<" ";
+  }
 
 
   //save vocabulary
