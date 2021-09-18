@@ -15,9 +15,9 @@
 #include <cmath>
 #include <thread>
 
-const int CREATURE_COUNT = 600;
+const int CREATURE_COUNT = 60;
 const int GENERATIONS = 100;
-const int SPEED_CAP = 2500;
+const int SPEED_CAP = 1000; //lower is better
 
 /*
   Training Plan:
@@ -456,54 +456,26 @@ int main() {
 
     std::vector<double> errors;
 
+    std::vector<std::thread*> threads;
+
     //loop through survived creatures and get results and errors 
+    //std::vector<Brainz::LSTM*> *creatures,nlohmann::json TrainingData,std::vector<double>* errors,int nc
     for(int sc = 0; sc != BaseNum;sc++)
     {
-      //loop through inputs and outputs
-      for(int i = 0; i != TrainingData["Input"].size();i++)
-      {
-        //degrammarlize and form ints of inputs
-        std::vector<int> inps;
-        inps = TextToInts(Degrammarlize(TrainingData["Input"][i]));
+      //slow down code to speed_cap
+      std::this_thread::sleep_for(std::chrono::microseconds(SPEED_CAP));
 
-        //degrammarlize and form ints of outputs
-        auto outs = TextToInts(Degrammarlize(TrainingData["Output"][i]));
+      //create thread
+      std::thread* t = new std::thread(CreatureComputation,&creatures,TrainingData,&errors,sc);
 
+      //add to threads
+      threads.push_back(t);
+    }
 
-
-        //loop inputs through network
-        for(int num = 0; num != inps.size();num++)
-        {
-          creatures[sc]->Run(inps[num]);
-        }
-
-
-        //loop through outputs and calculate errors
-        for(int num = 0; num != outs.size()-1;num++)
-        {
-          //run network
-          double r = creatures[sc]->Run((double)outs[num]);
-          r = r*100000.0;
-          r += (10000000000000.0 * (r == 0));
-
-          //run network on next input for error check
-          double nr = (double)outs[num+1];
-
-          //if first time error is being added, append to error, else just add to existing
-          if(errors.size() == sc)
-          {
-            errors.push_back(fabs(r - nr));
-          }
-          else
-          {
-            errors[sc] += fabs(r - nr);
-          }
-
-        }
-
-
-      }
-      
+    //rejoin threads
+    for(int i = 0; i != threads.size();i++)
+    {
+      threads[i]->join();
     }
 
     //create the rest of the creatures
