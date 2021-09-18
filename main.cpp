@@ -15,8 +15,8 @@
 #include <cmath>
 #include <thread>
 
-const int CREATURE_COUNT = 60;
-const int GENERATIONS = 100;
+const int CREATURE_COUNT = 100;
+const int GENERATIONS = 1000;
 const int SPEED_CAP = 1000; //lower is better
 
 /*
