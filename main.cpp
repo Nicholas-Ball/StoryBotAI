@@ -6,6 +6,7 @@
 #include "brainz/nlohmann/json.hpp"
 #include <map>
 #include <cmath>
+#include <utility>
 
 const int CREATURE_COUNT = 60;
 const int GENERATIONS = 100;
@@ -24,7 +25,7 @@ const int GENERATIONS = 100;
   save brain matrix
 */
 
-std::map<char,char> converter;
+std::map<char,char> converter = {};
 
 std::vector<char> symbols = {'.',',','?','!','"','(',')','[',']','{','}','/','\\','@','#','$','%','^','&','*','-','_','+','=','`','~','|','<','>'};
 
@@ -251,34 +252,34 @@ while (m1x != m1.size() or m2x != m2.size()){
 
 
 int main() {
-
+  
   //initialize converter
-  converter.insert(std::pair('A','a'));
-  converter.insert(std::pair('B','b'));
-  converter.insert(std::pair('C','c'));
-  converter.insert(std::pair('D','d'));
-  converter.insert(std::pair('E','e'));
-  converter.insert(std::pair('F','f'));
-  converter.insert(std::pair('G','g'));
-  converter.insert(std::pair('H','h'));
-  converter.insert(std::pair('I','i'));
-  converter.insert(std::pair('J','j'));
-  converter.insert(std::pair('K','k'));
-  converter.insert(std::pair('L','l'));
-  converter.insert(std::pair('M','m'));
-  converter.insert(std::pair('N','n'));
-  converter.insert(std::pair('O','o'));
-  converter.insert(std::pair('P','p'));
-  converter.insert(std::pair('Q','q'));
-  converter.insert(std::pair('R','r'));
-  converter.insert(std::pair('S','s'));
-  converter.insert(std::pair('T','t'));
-  converter.insert(std::pair('U','u'));
-  converter.insert(std::pair('V','v'));
-  converter.insert(std::pair('W','w'));
-  converter.insert(std::pair('X','x'));
-  converter.insert(std::pair('Y','y'));
-  converter.insert(std::pair('Z','z'));
+  converter.insert(std::pair<char,char>('A','a'));
+  converter.insert(std::pair<char,char>('B','b'));
+  converter.insert(std::pair<char,char>('C','c'));
+  converter.insert(std::pair<char,char>('D','d'));
+  converter.insert(std::pair<char,char>('E','e'));
+  converter.insert(std::pair<char,char>('F','f'));
+  converter.insert(std::pair<char,char>('G','g'));
+  converter.insert(std::pair<char,char>('H','h'));
+  converter.insert(std::pair<char,char>('I','i'));
+  converter.insert(std::pair<char,char>('J','j'));
+  converter.insert(std::pair<char,char>('K','k'));
+  converter.insert(std::pair<char,char>('L','l'));
+  converter.insert(std::pair<char,char>('M','m'));
+  converter.insert(std::pair<char,char>('N','n'));
+  converter.insert(std::pair<char,char>('O','o'));
+  converter.insert(std::pair<char,char>('P','p'));
+  converter.insert(std::pair<char,char>('Q','q'));
+  converter.insert(std::pair<char,char>('R','r'));
+  converter.insert(std::pair<char,char>('S','s'));
+  converter.insert(std::pair<char,char>('T','t'));
+  converter.insert(std::pair<char,char>('U','u'));
+  converter.insert(std::pair<char,char>('V','v'));
+  converter.insert(std::pair<char,char>('W','w'));
+  converter.insert(std::pair<char,char>('X','x'));
+  converter.insert(std::pair<char,char>('Y','y'));
+  converter.insert(std::pair<char,char>('Z','z'));
 
   //create bot
   Brainz::LSTM bot;
