@@ -219,7 +219,7 @@ void Neuron::RandomizeWeight(int seed,int WeightNum)
   srand(seed);
 
   //add random number to weight
-  this->Weights[WeightNum] += (double) ((rand() % 4) - 2) + (float)(rand() % 30) / 100;
+  this->Weights[WeightNum] += (double) ((rand() % 4000) - 2) + (float)(rand() % 30) / 100;
 };
 
 //returns the amount of weights 

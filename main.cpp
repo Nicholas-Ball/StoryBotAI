@@ -1,3 +1,10 @@
+#ifdef _WIN32
+#include <Windows.h>
+#else
+#include <unistd.h>
+#endif
+
+
 #include <iostream>
 #include "brainz/brainz.hpp"
 #include <fstream>
@@ -6,10 +13,11 @@
 #include "brainz/nlohmann/json.hpp"
 #include <map>
 #include <cmath>
-#include <utility>
+#include <thread>
 
-const int CREATURE_COUNT = 60;
+const int CREATURE_COUNT = 600;
 const int GENERATIONS = 100;
+const int SPEED_CAP = 2500;
 
 /*
   Training Plan:
@@ -116,6 +124,9 @@ std::vector<std::string> Degrammarlize(std::string text)
   return output;
 }
 
+//run creatures through envierments
+
+
 int ConvertToNumber(std::string word)
 {
   //loop through vocabulary and return index
@@ -154,13 +165,14 @@ std::vector<std::string> IntsToText(std::vector<int> text)
 
   for(int i = 0; i != text.size();i++)
   {
-    if(text[i] >= max)
+    if(abs(text[i]) >= max)
     {
      output.push_back("[Error]");
     }
     else{
+      const int sel = abs(text[i]);
       
-    output.push_back(Vocab["Vocabulary"][text[i]]);
+      output.push_back(Vocab["Vocabulary"][sel]);
     }
   }
 
@@ -249,10 +261,92 @@ while (m1x != m1.size() or m2x != m2.size()){
 
 };
 
+//creature compuation
+void CreatureComputation(std::vector<Brainz::LSTM*> *creatures,nlohmann::json TrainingData,std::vector<double>* errors,int nc)
+{
+  //loop through inputs and outputs
+      for(int i = 0; i != TrainingData["Input"].size();i++)
+      {
+
+        //degrammarlize and form ints of inputs
+        std::vector<int> inps;
+        inps = TextToInts(Degrammarlize(TrainingData["Input"][i]));
+
+        //degrammarlize and form ints of outputs
+        auto outs = TextToInts(Degrammarlize(TrainingData["Output"][i]));
+
+        //loop inputs through network
+        for(int num = 0; num != inps.size();num++)
+        {
+          creatures->at(nc)->Run(inps[num]);
+        }
+
+        //loop through outputs and calculate errors
+        for(int num = 0; num != outs.size()-1;num++)
+        {
+          //run network
+          double r = creatures->at(nc)->Run((double)outs[num]);
+          r = r*100000.0;
+
+          r += (10000000000000.0 * (r == 0));
+
+          //run network on next input for error check
+          double nr = ((double)outs[num+1]);
+
+          //if first time error is being added, append to error, else just add to existing
+          if(errors->size() == nc)
+          {
+            errors->push_back(fabs(r - nr));
+          }
+          else
+          {
+            errors->at(nc) += fabs(r - nr);
+          }
+        }
+      }
+}
+
+void CreateMoreCreatures(int BaseNum,std::vector<Brainz::LSTM*> *creatures,nlohmann::json TrainingData,std::vector<double>* errors)
+{
+  std::vector<std::thread*> threads;
+  //create creatures with survied creatures
+  for(int nc = BaseNum-1;nc != CREATURE_COUNT; nc++)
+  {
+      //create creature
+      Brainz::LSTM* creature = new Brainz::LSTM();
+
+      //get json data of a survived creture
+      auto j = creatures->at(nc % BaseNum)->Save();
+
+      //load data
+      creature->Load(j);
+
+      //mutate creture
+      creature->Mutate();
+
+      //add creture to envirement
+      creatures->push_back(creature);
+
+      std::this_thread::sleep_for(std::chrono::microseconds(SPEED_CAP));
+
+      //make thread for creature computation
+      std::thread* t = new std::thread(CreatureComputation,creatures,TrainingData,errors,nc);
+      threads.push_back(t);
+  }
+
+  //reconnect threads
+  for(int i = 0; i != threads.size();i++)
+  {
+    threads[i]->join();
+  }
+}
+
+
+
 
 
 int main() {
-  
+
   //initialize converter
   converter.insert(std::pair<char,char>('A','a'));
   converter.insert(std::pair<char,char>('B','b'));
@@ -412,65 +506,9 @@ int main() {
       
     }
 
-    //create creatures with survied creatures
-    for(int nc = BaseNum-1;nc != CREATURE_COUNT; nc++)
-    {
-      //create creature
-      Brainz::LSTM* creature = new Brainz::LSTM();
+    //create the rest of the creatures
+    CreateMoreCreatures(creatures.size(),&creatures,TrainingData,&errors);
 
-      //get json data of a survived creture
-      auto j = creatures[(nc % BaseNum)]->Save();
-
-      //load data
-      creature->Load(j);
-
-      //mutate creture
-      creature->Mutate();
-
-      //add creture to envirement
-      creatures.push_back(creature);
-
-      //loop through inputs and outputs
-      for(int i = 0; i != TrainingData["Input"].size();i++)
-      {
-
-        //degrammarlize and form ints of inputs
-        std::vector<int> inps;
-        inps = TextToInts(Degrammarlize(TrainingData["Input"][i]));
-
-        //degrammarlize and form ints of outputs
-        auto outs = TextToInts(Degrammarlize(TrainingData["Output"][i]));
-
-        //loop inputs through network
-        for(int num = 0; num != inps.size();num++)
-        {
-          creatures[nc]->Run(inps[num]);
-        }
-
-        //loop through outputs and calculate errors
-        for(int num = 0; num != outs.size()-1;num++)
-        {
-          //run network
-          double r = creatures[nc]->Run((double)outs[num]);
-          r = r*100000.0;
-
-          r += (10000000000000.0 * (r == 0));
-
-          //run network on next input for error check
-          double nr = ((double)outs[num+1]);
-
-          //if first time error is being added, append to error, else just add to existing
-          if(errors.size() == nc)
-          {
-            errors.push_back(fabs(r - nr));
-          }
-          else
-          {
-            errors[nc] += fabs(r - nr);
-          }
-        }
-      }
-    }
     //sort errors
     auto sorted = MergeSort(errors);
 
@@ -555,11 +593,13 @@ int main() {
     sentence.push_back((int)out);
   }
 
-  auto s = IntsToText(sentence);
+
+  std::vector<std::string> s = IntsToText(sentence);
   for(int i = 0; i != s.size();i++)
   {
     std::cout<<s[i]<<" ";
   }
+  
 
 
   //save vocabulary

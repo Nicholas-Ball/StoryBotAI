@@ -546,6 +546,9 @@ nlohmann::json Brainz::LSTM::Save()
   //save tanh2
   j["Tanh2"] = this->network["Tanh2"]->Save();
 
+  //save Memory
+  j["Memory"] = this->memory;
+
   return j;
 }
 
@@ -576,6 +579,9 @@ void Brainz::LSTM::Load(nlohmann::json j)
   Neuron * Tanh2 = new Neuron;
   Tanh2->Load(j["Tanh2"]);
   this->network["Tanh2"] = Tanh2; 
+
+  //load memory
+  this->memory = j["Memory"];
 }
 
 nlohmann::json Brainz::LSTM::Mutate()
