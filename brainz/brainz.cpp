@@ -423,6 +423,7 @@ void Brainz::LSTM::Generate()
   temp->SetNeuronType(0);
 
   temp->RandomizeWeight(this->seed,0);
+  temp->RandomizeBias(this->seed);
 
   //make copy of temp and load into sig1
   auto j = temp->Save();
@@ -433,6 +434,7 @@ void Brainz::LSTM::Generate()
   this->network["Sig1"] = sig1;
 
   temp->RandomizeWeight(this->seed,0);
+  temp->RandomizeBias(this->seed);
 
 
   //make copy of temp and load into sig2
@@ -444,6 +446,7 @@ void Brainz::LSTM::Generate()
   this->network["Sig2"] = sig2;
 
   temp->RandomizeWeight(this->seed,0);
+  temp->RandomizeBias(this->seed);
 
   //make copy of temp and load into sig3
   j = temp->Save();
@@ -457,6 +460,7 @@ void Brainz::LSTM::Generate()
   temp->SetNeuronType(1);
 
   temp->RandomizeWeight(this->seed,0);
+  temp->RandomizeBias(this->seed);
 
   //make copy of temp and load into Tanh1
   j = temp->Save();
@@ -464,6 +468,7 @@ void Brainz::LSTM::Generate()
   Tanh1->Load(j);
 
   temp->RandomizeWeight(this->seed,0);
+  temp->RandomizeBias(this->seed);
 
   //make copy of temp and load into sig1
   j = temp->Save();
@@ -591,13 +596,23 @@ nlohmann::json Brainz::LSTM::Mutate()
   //random mutate list
   std::string list[5] = {"Sig1","Sig2","Sig3","Tanh1","Tanh2"};
 
-  //pick from list what to mutate
+  //pick from list what to mutate and if it's bias or weight
   srand(this->seed);
   this->seed = rand() % 5;
-  int r = rand() % 6000;
+  int r = (int)(rand() % 6000);
+  int c  = (int) (rand() % 2);
 
   //mutate
-  this->network[list[this->seed]]->RandomizeWeight(r, 0);
+  if(c == 0)
+  {
+    this->network[list[this->seed]]->RandomizeWeight(r, 0);
+  }
+  else
+  {
+    this->network[list[this->seed]]->RandomizeBias(r); 
+  }
+  
+  this->seed = r;
 
   j = this->Save();
 
@@ -612,6 +627,19 @@ Brainz::LSTM::LSTM(int Seedoffset)
  const auto p1 = std::chrono::system_clock::now();
  int unix = std::chrono::duration_cast<std::chrono::nanoseconds>(p1.time_since_epoch()).count();
   this->seed = unix + Seedoffset;
+}
+
+
+//gets seed of lastm
+int Brainz::LSTM::GetSeed()
+{
+  return this->seed;
+}
+
+//set seed or lstm
+void Brainz::LSTM::SetSeed(int seed,int offset)
+{
+  this->seed = seed + offset;
 }
 
 

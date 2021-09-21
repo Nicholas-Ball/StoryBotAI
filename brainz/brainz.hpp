@@ -81,6 +81,13 @@ class Brainz{
       //mutate lstm
       nlohmann::json Mutate();
 
+      //gets seed of lastm
+      int GetSeed();
+
+      //set seed or lstm
+      void SetSeed(int seed,int offset);
+
+
 
    };
 

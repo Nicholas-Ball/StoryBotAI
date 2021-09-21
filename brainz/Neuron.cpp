@@ -218,8 +218,23 @@ void Neuron::RandomizeWeight(int seed,int WeightNum)
   //set a new seed
   srand(seed);
 
+  //check if it should be negitive
+  double r = (rand() % 10);
+
   //add random number to weight
-  this->Weights[WeightNum] += (double) ((rand() % 4000) - 2) + (float)(rand() % 30) / 100;
+  this->Weights[WeightNum] += ((double) ((rand() % 10) + (float)(rand() % 30) / 100)) * (1 + (double)((r > 5) * -2));
+};
+//Randomize a weight for this neuron
+void Neuron::RandomizeBias(int seed)
+{
+  //set a new seed
+  srand(seed);
+
+  //check if it should be negitive
+  double r = (rand() % 10);
+
+  //add random number to bias
+  this->Bias += ((double) ((rand() % 10)) + (float)(rand() % 30) / 100) * (1 + (double)((r > 5) * -2));
 };
 
 //returns the amount of weights 

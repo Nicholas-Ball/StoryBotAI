@@ -83,6 +83,8 @@ class Neuron{
     //get number of weights in neuron
     int GetNumWeights();
 
+    void RandomizeBias(int seed);
+
     //destruct
     ~Neuron();
 

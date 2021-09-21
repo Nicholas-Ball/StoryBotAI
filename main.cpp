@@ -18,11 +18,9 @@
 
 std::mutex m;
 
-const int CREATURE_COUNT = 100;
-const int GENERATIONS = 10;
+const int CREATURE_COUNT = 50;
+const int GENERATIONS = 50;
 const double SURVIVAL_RATE = 0.5;
-
-
 
 /*
   Training Plan:
@@ -170,12 +168,13 @@ std::vector<std::string> IntsToText(std::vector<int> text)
 
   for(int i = 0; i != text.size();i++)
   {
-    if(abs(text[i]) >= max)
+    int w  = (int)(abs(text[i]) % max);
+    if(abs(w) >= max)
     {
      output.push_back("[Error]");
     }
     else{
-      const int sel = abs(text[i]);
+      const int sel = abs(w);
       
       output.push_back(Vocab["Vocabulary"][sel]);
     }
@@ -329,8 +328,17 @@ void CreateMoreCreatures(int BaseNum,std::vector<Brainz::LSTM*> *creatures,nlohm
       //get json data of a survived creture
       auto j = creatures->at(nc % BaseNum)->Save();
 
+      int seed = creatures->at(nc % BaseNum)->GetSeed();
+
       //load data
       creature->Load(j);
+
+      const auto p1 = std::chrono::system_clock::now();
+
+      int unix = (int)std::chrono::duration_cast<std::chrono::nanoseconds>(p1.time_since_epoch()).count();
+
+      //set random seed
+      creature->SetSeed(seed,nc+unix);
 
       //mutate creture
       creature->Mutate();
@@ -404,9 +412,16 @@ int main() {
 
   //load bot brain matrix
   std::ifstream file;
+
   file.open("brain.json");
-  auto j = nlohmann::json::parse(file);
-  bot.Load(j);
+  try
+  {
+    auto j = nlohmann::json::parse(file);
+    bot.Load(j);
+  }catch(...){
+    bot.Generate();
+  }
+  
   file.close();
 
   //load bot vocabulary
@@ -533,7 +548,7 @@ int main() {
       //check if duplicate
       for(int d = 0; d != dups.size();d++)
       {
-        if (fabs(dups[d] - score) <= 100)
+        if (fabs(dups[d] - score) <= 1)
         {
           IsDup = true;
           break;
@@ -561,7 +576,7 @@ int main() {
     creatures = temp;
   }
 
-  j = creatures[0]->Save();
+  auto j = creatures[0]->Save();
 
   //start bot with starter sentence
   auto g = Degrammarlize("Hi!");
