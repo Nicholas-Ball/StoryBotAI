@@ -20,12 +20,7 @@ math Afuncs[4] = {
 //construct the neuron
 Neuron::Neuron()
 {
-  //make generation seed 
-  auto unix_timestamp = std::chrono::seconds(std::time(NULL));
-
-  //set generation seed
-  srand(std::chrono::milliseconds(unix_timestamp).count());
-
+  srand(0);
   //set random bias -10 to 10 range
   this->Bias = Rand(-10, 20);
 
@@ -57,19 +52,12 @@ void Neuron::Compute(std::vector<double> inputs)
     //loop through inputs
     for(int i = 0; i != inputs.size();i++)
     {
-
       //get output
       double temp = inputs[i];
 
-
-
-
       //multiply it by it's weight and add to output
       this->Output += (this->Weights[i] * temp);
-
     }
-    
-
   }
 
   //add bias,Compute neuron, and set as output

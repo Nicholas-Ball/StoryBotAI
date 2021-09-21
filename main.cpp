@@ -18,7 +18,7 @@
 
 std::mutex m;
 
-const int CREATURE_COUNT = 50;
+const int CREATURE_COUNT = 100;
 const int GENERATIONS = 50;
 const double SURVIVAL_RATE = 0.5;
 
@@ -302,7 +302,23 @@ void CreatureComputation(std::vector<Brainz::LSTM*> *creatures,nlohmann::json Tr
           //if first time error is being added, append to error, else just add to existing
           while(errors->size() < nc)
           {
-            std::this_thread::sleep_for(std::chrono::nanoseconds(1));
+            std::cout<<"";
+          }
+          if(errors->size() < nc)
+          {
+              std::cout<<"Hmm...Recovering code... \n";
+          }
+          if(errors->size() < nc)
+          {
+              std::cout<<"Last ditch effort to recover... \n";
+          }
+          if(errors->size() < nc)
+          {
+              std::this_thread::sleep_for(std::chrono::seconds(1));
+          }
+          if(errors->size() < nc)
+          {
+              std::this_thread::sleep_for(std::chrono::seconds(10));
           }
           if(errors->size() == nc)
           {
