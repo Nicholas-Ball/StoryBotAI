@@ -14,10 +14,15 @@
 #include <map>
 #include <cmath>
 #include <thread>
+#include <mutex>
+
+std::mutex m;
 
 const int CREATURE_COUNT = 100;
-const int GENERATIONS = 1000;
-const int SPEED_CAP = 1000; //lower is better
+const int GENERATIONS = 10;
+const double SURVIVAL_RATE = 0.5;
+
+
 
 /*
   Training Plan:
@@ -267,7 +272,6 @@ void CreatureComputation(std::vector<Brainz::LSTM*> *creatures,nlohmann::json Tr
   //loop through inputs and outputs
       for(int i = 0; i != TrainingData["Input"].size();i++)
       {
-
         //degrammarlize and form ints of inputs
         std::vector<int> inps;
         inps = TextToInts(Degrammarlize(TrainingData["Input"][i]));
@@ -281,19 +285,26 @@ void CreatureComputation(std::vector<Brainz::LSTM*> *creatures,nlohmann::json Tr
           creatures->at(nc)->Run(inps[num]);
         }
 
+
         //loop through outputs and calculate errors
         for(int num = 0; num != outs.size()-1;num++)
         {
+
           //run network
           double r = creatures->at(nc)->Run((double)outs[num]);
           r = r*100000.0;
 
           r += (10000000000000.0 * (r == 0));
 
+
           //run network on next input for error check
           double nr = ((double)outs[num+1]);
 
           //if first time error is being added, append to error, else just add to existing
+          while(errors->size() < nc)
+          {
+            std::this_thread::sleep_for(std::chrono::nanoseconds(1));
+          }
           if(errors->size() == nc)
           {
             errors->push_back(fabs(r - nr));
@@ -310,7 +321,7 @@ void CreateMoreCreatures(int BaseNum,std::vector<Brainz::LSTM*> *creatures,nlohm
 {
   std::vector<std::thread*> threads;
   //create creatures with survied creatures
-  for(int nc = BaseNum-1;nc != CREATURE_COUNT; nc++)
+  for(int nc = BaseNum-1;nc != CREATURE_COUNT -1; nc++)
   {
       //create creature
       Brainz::LSTM* creature = new Brainz::LSTM();
@@ -327,12 +338,25 @@ void CreateMoreCreatures(int BaseNum,std::vector<Brainz::LSTM*> *creatures,nlohm
       //add creture to envirement
       creatures->push_back(creature);
 
-      std::this_thread::sleep_for(std::chrono::microseconds(SPEED_CAP));
-
       //make thread for creature computation
       std::thread* t = new std::thread(CreatureComputation,creatures,TrainingData,errors,nc);
       threads.push_back(t);
+
   }
+
+
+    //create creature
+    Brainz::LSTM* creature = new Brainz::LSTM();
+
+    //mutate creture
+    creature->Generate();
+
+    //add creture to envirement
+    creatures->push_back(creature);
+
+    //make thread for creature computation
+    std::thread* t = new std::thread(CreatureComputation,creatures,TrainingData,errors,CREATURE_COUNT -1);
+    threads.push_back(t);
 
   //reconnect threads
   for(int i = 0; i != threads.size();i++)
@@ -462,9 +486,6 @@ int main() {
     //std::vector<Brainz::LSTM*> *creatures,nlohmann::json TrainingData,std::vector<double>* errors,int nc
     for(int sc = 0; sc != BaseNum;sc++)
     {
-      //slow down code to speed_cap
-      std::this_thread::sleep_for(std::chrono::microseconds(SPEED_CAP));
-
       //create thread
       std::thread* t = new std::thread(CreatureComputation,&creatures,TrainingData,&errors,sc);
 
@@ -501,8 +522,10 @@ int main() {
     //check for duplicates
     bool IsDup = false;
 
+    int survivable = (int)((double)sorted.size() * SURVIVAL_RATE);
+
     //kill creatures that didn't survive or are duplicated
-    for(int i = 0; i != sorted.size()*0.5;i++)
+    for(int i = 0; i != sorted.size();i++)
     { 
       //get score
       double score = sorted[i];
@@ -510,7 +533,7 @@ int main() {
       //check if duplicate
       for(int d = 0; d != dups.size();d++)
       {
-        if (dups[d] == score)
+        if (fabs(dups[d] - score) <= 100)
         {
           IsDup = true;
           break;
@@ -518,7 +541,7 @@ int main() {
       }
 
       //if not duplicated score, add to survuved creatures
-      if(IsDup == false)
+      if(IsDup == false && dups.size() != survivable)
       {
         //get creature's index
         int creatureindex = ValueToIndex(errors,score);
