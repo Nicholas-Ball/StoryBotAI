@@ -19,7 +19,7 @@
 std::mutex m;
 
 const int CREATURE_COUNT = 100;
-const int GENERATIONS = 50;
+const int GENERATIONS = 200;
 const double SURVIVAL_RATE = 0.5;
 
 /*
