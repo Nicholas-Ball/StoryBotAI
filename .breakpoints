@@ -4,16 +4,24 @@
       {
         "id": "36e07c81-b5aa-4122-aed7-ec83cc2d7c86",
         "line": 1,
-        "version": 29,
+        "version": 39,
         "index": 0
       }
     ],
     "main.cpp": [
       {
         "id": "176bcb0d-abaa-4f9c-aa2d-1337ec2149b2",
-        "line": 628,
-        "version": 13209,
-        "index": 13820
+        "line": 542,
+        "version": 13732,
+        "index": 11980
+      }
+    ],
+    "vocabulary.json": [
+      {
+        "id": "f710e03b-e3da-4717-8962-5519f22e1213",
+        "line": 1,
+        "version": 60,
+        "index": 0
       }
     ]
   }

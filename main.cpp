@@ -14,12 +14,9 @@
 #include <map>
 #include <cmath>
 #include <thread>
-#include <mutex>
 
-std::mutex m;
-
-const int CREATURE_COUNT = 100;
-const int GENERATIONS = 250;
+const int CREATURE_COUNT = 36;
+const int EPOCHES = 25;
 const double SURVIVAL_RATE = 0.5;
 
 /*
@@ -27,127 +24,92 @@ const double SURVIVAL_RATE = 0.5;
 
   Load all needed data
 
-  degrammarlize input text (space out periods, make all letters lowercase, etc)
+  degrammarlize input text (make each character into ascii version)
 
-  convert text to numbers
-
-  run natutal selection with text as input data
+  Use cop vs robber method
+    -Make "robber" ai
+    -Make "cop" ai
+    -Train cop to identify stories made by bot
+    -Train robber to make stories that trick the cop
+    -Repeat
 
   save brain matrix
 */
 
-std::map<char,char> converter = {};
-
-std::vector<char> symbols = {'.',',','?','!','"','(',')','[',']','{','}','/','\\','@','#','$','%','^','&','*','-','_','+','=','`','~','|','<','>'};
-
-nlohmann::json Vocab;
-
-//checks if cahr is symbol
-bool IsSymbol(char letter)
+//loop through training files and collect training data recursuvly
+nlohmann::json Reload(int start,std::string filename)
 {
-  bool out = false;
+  //file stream
+  std::ifstream ifile;
+  nlohmann::json j;
 
-  //loop throught symbols and chech if it's a symbol
-  for(int i = 0;i != symbols.size() && out == false;i++)
-  {
-    if(symbols[i] == letter)
+
+  //open file
+  ifile.open("Training/" + std::to_string(start) + filename+".txt");
+
+  if(ifile.is_open()){
+
+    //start next instance of coleccting data
+    j = Reload(start + 1,filename);
+
+    //loop vars
+    std::string line;
+    std::string sentence;
+    std::vector<std::string> sentences;
+
+    while(std::getline(ifile,line))
     {
-      out = true;
-    }
-  }
-
-  return out;
-}
-
-char LowerCase(char letter)
-{
-  if (converter.find(letter) != converter.end())
-  {
-    letter = converter[letter];
-  }
-  return letter;
-}
-
-char UpperCase(char letter)
-{
-  //loop through coversion map
-  for (auto& it : converter) {
-      if (it.second == letter) {
-        letter = it.first;
-      }
-  }
-
-  return letter;
-}
-
-//space out commas, periods, etc
-std::vector<std::string> Degrammarlize(std::string text)
-{
-  std::vector<std::string> output;
-
-  //get size of input text
-  int s = text.size();
-
-  //word var for use of adding to array
-  std::string word;
-
-  //loop through characters of text and make output array of words and symbols
-  for(int i = 0; i != s; i++)
-  {
-    //get letter
-    char letter =  text[i];
-
-    //make letter lower case
-    letter = LowerCase(text[i]);
-
-    //check if word is a white space, if so add the word to array and reset word var
-    if (letter == ' ' or letter == '\n')
-    {
-      if(word != "")
+      //loop through lines and break up into sentences
+      for(int i = 0; i != line.size();i++)
       {
-        output.push_back(word);
+        //verify it's not the end of a sentence
+        if(line[i] != '.' && line[i] != '!' && line[i] != '?')
+        {
+          //add character to sentence
+          sentence = sentence + line[i];
+        } else
+        {
+          //add chacter to sentence
+          sentence = sentence + line[i];
+          //add sentence to array
+          sentences.push_back(sentence);
+          //reset sentence
+          sentence = "";
+        }
       }
-      word = "";
+      //close file
+      ifile.close();
+
+      //Make training data
+      for(int i = 0; i != sentences.size() && sentences.size() >= 4;i++)
+      {
+        //if on good index, start making input and output data
+        if((i+1) >= 4)
+        {
+          int index = j["Input"].size();
+          //make input data
+          j["Input"][index] = sentences[i-3]+sentences[i-2];
+
+          //make output data
+          j["Output"][index] = sentences[i-1]+sentences[i];
+        }
+      }
     }
-    //if word is a symbol (",:,;,.,{ ,[ ,etc), add word to array and symbole to array as string
-    else if (IsSymbol(letter))
-    {
-      output.push_back(word);
-      word = "";
-      output.push_back(std::string(1,letter));
-    } 
-    //if letter, append to word
-    else
-    {
-      word = word + letter;
-    }
+    return j;
     
   }
-
-  return output;
-}
-
-//run creatures through envierments
-
-
-int ConvertToNumber(std::string word)
-{
-  //loop through vocabulary and return index
-  for(int i = 0;i != Vocab["Vocabulary"].size();i++)
+  else
   {
-    if (Vocab["Vocabulary"][i] == word)
-    {
-      return i;
-    }
+    //make defualt training data
+    j["Input"][0] = "Hi! How are you?";
+
+    j["Output"][0] = "My Name is StoryBotAI and I'm happy to be of service!";
+    return j;
   }
-  
-  //add word to list
-  Vocab["Vocabulary"][Vocab["Vocabulary"].size()] = word;
-  return Vocab["Vocabulary"].size()-1;
 }
 
-
-std::vector<int> TextToInts(std::vector<std::string> text)
+//convert string to ints
+std::vector<int> TextToInts(std::string text)
 {
   std::vector<int> output;
 
@@ -155,28 +117,27 @@ std::vector<int> TextToInts(std::vector<std::string> text)
   for(int i = 0; i != text.size();i++)
   {
     //add int version of word to output
-    output.push_back(ConvertToNumber(text[i]));
+    output.push_back(text[i]);
   }
 
   return output;
 }
 
-std::vector<std::string> IntsToText(std::vector<int> text)
+//convert ints to string
+std::string IntsToText(std::vector<int> text)
 {
-  int max = Vocab["Vocabulary"].size();
-  std::vector<std::string> output;
+  int max = 256;
+  std::string output;
 
   for(int i = 0; i != text.size();i++)
   {
     int w  = (int)(abs(text[i]) % max);
     if(abs(w) >= max)
     {
-     output.push_back("[Error]");
+     output += "[Error]";
     }
     else{
-      const int sel = abs(w);
-      
-      output.push_back(Vocab["Vocabulary"][sel]);
+      output += (char)text[i];
     }
   }
 
@@ -273,10 +234,10 @@ void CreatureComputation(std::vector<Brainz::LSTM*> *creatures,nlohmann::json Tr
       {
         //degrammarlize and form ints of inputs
         std::vector<int> inps;
-        inps = TextToInts(Degrammarlize(TrainingData["Input"][i]));
+        inps = TextToInts(TrainingData["Input"][i]);
 
         //degrammarlize and form ints of outputs
-        auto outs = TextToInts(Degrammarlize(TrainingData["Output"][i]));
+        auto outs = TextToInts(TrainingData["Output"][i]);
 
         //loop inputs through network
         for(int num = 0; num != inps.size();num++)
@@ -291,10 +252,8 @@ void CreatureComputation(std::vector<Brainz::LSTM*> *creatures,nlohmann::json Tr
 
           //run network
           double r = creatures->at(nc)->Run((double)outs[num]);
-          r = r*100000.0;
 
-          r += (10000000000000.0 * (r == 0));
-
+          r = r*1000.0;
 
           //run network on next input for error check
           double nr = ((double)outs[num+1]);
@@ -389,215 +348,84 @@ void CreateMoreCreatures(int BaseNum,std::vector<Brainz::LSTM*> *creatures,nlohm
   }
 }
 
-
-
+//train bot through cops vs robbers
+void CopsVsRobbers(Brainz::LSTM Cop,Brainz::LSTM Robber)
+{
+  //loop through epoches
+  for(int e = 0; e != EPOCHES; e++)
+  {
+    
+  }
+}
 
 
 int main() {
-
-  //initialize converter
-  converter.insert(std::pair<char,char>('A','a'));
-  converter.insert(std::pair<char,char>('B','b'));
-  converter.insert(std::pair<char,char>('C','c'));
-  converter.insert(std::pair<char,char>('D','d'));
-  converter.insert(std::pair<char,char>('E','e'));
-  converter.insert(std::pair<char,char>('F','f'));
-  converter.insert(std::pair<char,char>('G','g'));
-  converter.insert(std::pair<char,char>('H','h'));
-  converter.insert(std::pair<char,char>('I','i'));
-  converter.insert(std::pair<char,char>('J','j'));
-  converter.insert(std::pair<char,char>('K','k'));
-  converter.insert(std::pair<char,char>('L','l'));
-  converter.insert(std::pair<char,char>('M','m'));
-  converter.insert(std::pair<char,char>('N','n'));
-  converter.insert(std::pair<char,char>('O','o'));
-  converter.insert(std::pair<char,char>('P','p'));
-  converter.insert(std::pair<char,char>('Q','q'));
-  converter.insert(std::pair<char,char>('R','r'));
-  converter.insert(std::pair<char,char>('S','s'));
-  converter.insert(std::pair<char,char>('T','t'));
-  converter.insert(std::pair<char,char>('U','u'));
-  converter.insert(std::pair<char,char>('V','v'));
-  converter.insert(std::pair<char,char>('W','w'));
-  converter.insert(std::pair<char,char>('X','x'));
-  converter.insert(std::pair<char,char>('Y','y'));
-  converter.insert(std::pair<char,char>('Z','z'));
-
-  //create bot
-  Brainz::LSTM bot;
+  //create bots
+  Brainz::LSTM cop;
+  Brainz::LSTM robber;
 
   //load bot brain matrix
   std::ifstream file;
 
-  file.open("brain.json");
+  //make/load cop
+  file.open("bot/Cop-Brain.json");
   try
   {
     auto j = nlohmann::json::parse(file);
-    bot.Load(j);
+    cop.Load(j);
   }catch(...){
-    bot.Generate();
+    cop.Generate();
+  }
+
+  //make/load robber
+  file.open("bot/Robber-Brain.json");
+  try
+  {
+    auto j = nlohmann::json::parse(file);
+    cop.Load(j);
+  }catch(...){
+    cop.Generate();
   }
   
   file.close();
-
-  //load bot vocabulary
-  std::ifstream vocabfile;
-  vocabfile.open("vocabulary.json");
-  Vocab = nlohmann::json::parse(vocabfile);
-  vocabfile.close();
-
-
-  //load training data
-  nlohmann::json TrainingData;
+  
+  //load Robber and Cop training data
+  nlohmann::json RobberTrainingData;
+  nlohmann::json CopTrainingData;
   std::ifstream data;
-  data.open("trainingdata.json");
-  TrainingData = nlohmann::json::parse(data);
+  std::ifstream data2;
+  data.open("Training/Robber-TrainingData.json");
+  data.open("Training/Cop-TrainingData.json");
+  try
+  {
+    RobberTrainingData = nlohmann::json::parse(data);
+    CopTrainingData = nlohmann::json::parse(data);
+  }
+  catch(...)
+  {
+    RobberTrainingData = Reload(0,"robber");
+    CopTrainingData = Reload(0,"cop");
+  }
   data.close();
 
-  bool loop = true;
-  //prompt to add input data and expected output
-  while(loop)
+  std::string ch;
+
+  std::cout<<"Want to reload training data?[Y|N]--> ";
+  std::cin >> ch;
+
+  if (ch[0] == 'Y' || ch[0] == 'y')
   {
-    std::string input;
-    std::string output;
-
-    std::cout << ("Enter input(hit return to continue)--> ");
-    std::getline(std::cin,input);
-
-    //check if user wants to end
-    if(input == "")
-    {
-      loop = false;
-      break;
-    }
-
-    std::cout << ("\nEnter expected output(hit return to continue)--> ");
+    RobberTrainingData = Reload(0,"robber");
+    CopTrainingData = Reload(0,"cop");
+  }
   
-    std::getline(std::cin,output);
+  auto g = TextToInts("What are you doing!");
 
-    //check if user wants to end
-    if(output == "")
-    {
-      loop = false;
-      break;
-    }
+  auto inp = TextToInts("It was a bright cold day in April, and the clocks were striking thirteen. Winston Smith, his chin nuzzled into his breast in an effort to escape the vile wind, slipped quickly through the glass doors of Victory Mansions, though not quickly enough to prevent a swirl of gritty dust from entering along with him.");
 
-    //set training data information if they want to add data
-    TrainingData["Input"][TrainingData["Input"].size()] = input;
+  //auto c = NaturalSelection(cop,CopTrainingData);
 
-    TrainingData["Output"][TrainingData["Output"].size()] = output;
-  }
-
-  //save training data to learning data json
-  std::ofstream td;
-  td.open("trainingdata.json");
-  td << TrainingData;
-  td.close();
-
-  std::vector<Brainz::LSTM*> creatures;
-
-  creatures.push_back(&bot);
-
-  //train bot through natrual selection
-  //loop through generations
-  for(int g = 0; g != GENERATIONS;g++)
-  {
-
-    //result vector 
-    std::vector<double> result;
-
-    //number of survived cretures
-    int BaseNum = creatures.size();
-
-    std::vector<double> errors;
-
-    std::vector<std::thread*> threads;
-
-    //loop through survived creatures and get results and errors 
-    //std::vector<Brainz::LSTM*> *creatures,nlohmann::json TrainingData,std::vector<double>* errors,int nc
-    for(int sc = 0; sc != BaseNum;sc++)
-    {
-      //create thread
-      std::thread* t = new std::thread(CreatureComputation,&creatures,TrainingData,&errors,sc);
-
-      //add to threads
-      threads.push_back(t);
-    }
-
-    //rejoin threads
-    for(int i = 0; i != threads.size();i++)
-    {
-      threads[i]->join();
-    }
-
-    //create the rest of the creatures
-    CreateMoreCreatures(creatures.size(),&creatures,TrainingData,&errors);
-
-    //sort errors
-    auto sorted = MergeSort(errors);
-
-    /*
-    for(int i = 0; i != sorted.size();i++)
-    {
-      std::cout<< sorted[i] <<" ";
-    }
-    /**/
-    std::cout<<"Generation "<<g<<" score: " <<sorted[0]<<"\n";
-
-    //used error scores to remove duplicates
-    std::vector<double> dups;
-
-    //temp blank creature array
-    std::vector<Brainz::LSTM*> temp;
-
-    //check for duplicates
-    bool IsDup = false;
-
-    int survivable = (int)((double)sorted.size() * SURVIVAL_RATE);
-
-    //kill creatures that didn't survive or are duplicated
-    for(int i = 0; i != sorted.size();i++)
-    { 
-      //get score
-      double score = sorted[i];
-
-      //check if duplicate
-      for(int d = 0; d != dups.size();d++)
-      {
-        if (fabs(dups[d] - score) <= 1)
-        {
-          IsDup = true;
-          break;
-        }
-      }
-
-      //if not duplicated score, add to survuved creatures
-      if(IsDup == false && dups.size() != survivable)
-      {
-        //get creature's index
-        int creatureindex = ValueToIndex(errors,score);
-
-        //add to survived array
-        temp.push_back(creatures[creatureindex]);
-
-        dups.push_back(score);
-
-      }
-      //reset duplication bool
-      IsDup = false;
-
-    }
-
-    //set survived creatures
-    creatures = temp;
-  }
-
-  auto j = creatures[0]->Save();
-
-  //start bot with starter sentence
-  auto g = Degrammarlize("Hi!");
-
-  auto inp = TextToInts(g);
+  auto j = c->Save();
 
   bot.Load(j);
 
@@ -606,39 +434,35 @@ int main() {
   for(int i = 0; i != inp.size();i++)
   {
     out = bot.Run(inp[i]);
-    out *= 100000.0;
+    out *= 1000.0;
   }
 
   std::vector<int> sentence;
   //have bot print out 10 words
-  for(int i = 0; i != 10; i++)
+  for(int i = 0; i != 100; i++)
   {
     out = bot.Run(out);
-    out *= 100000.0;
+    out *= 1000.0;
+    int outs =  (int)out % 256;
 
-    sentence.push_back((int)out);
+    sentence.push_back(outs);
   }
 
-
-  std::vector<std::string> s = IntsToText(sentence);
-  for(int i = 0; i != s.size();i++)
-  {
-    std::cout<<s[i]<<" ";
-  }
-  
+  //convert ints from lstm to text
+  std::string s = IntsToText(sentence);
+  std::cout<<s<<std::endl;
 
 
-  //save vocabulary
+  //save network
   std::ofstream ofile;
-  ofile.open("vocabulary.json");
-  ofile << Vocab;
+  ofile.open("Training/TrainingData.json");
+  ofile << TrainingData;
   ofile.close();
 
   //save network
-  ofile.open("brain.json");
-  auto save = creatures[0]->Save();
+  ofile.open("bot/brain.json");
+  auto save = bot.Save();
   ofile << save;
   ofile.close();
-
-
+  
 }
