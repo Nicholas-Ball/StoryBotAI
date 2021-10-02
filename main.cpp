@@ -15,13 +15,14 @@
 #include <cmath>
 #include <thread>
 #include <sys/stat.h>
-
 #define ROUNDNUM(x) ((int)(x + 0.5f));
 
-const int CREATURE_COUNT = 36;
-const int EPOCHES = 25;
+
+
+const int CREATURE_COUNT = 500;
+const int EPOCHES = 1000;
 const double SURVIVAL_RATE = 0.5;
-const int TOLERANCE = 2;
+const int TOLERANCE = 0;
 
 /*
   Training Plan:
@@ -154,7 +155,8 @@ std::string IntsToText(std::vector<int> text)
   return output;
 }
 
-int ValueToIndex(std::vector<double> list, double value)
+template<typename T>
+int ValueToIndex(std::vector<T> list, T value)
 {
   //loop through list
   for(int i = 0; i != list.size();i++)
@@ -286,7 +288,7 @@ void RunRobberComputation(std::vector<double>* Errors,nlohmann::json RobberTrain
       sentence.push_back((int)(out*1000));
       answer = ROUNDNUM(cop.Run(out));
     }
-    if (answer != 1)
+    if ((answer != 1))
     {
       CopTrainingData->at("Inputs").push_back(IntsToText(sentence));
       CopTrainingData->at("Output").push_back(1);
@@ -316,6 +318,7 @@ void CopsVsRobbers(Brainz::LSTM* Cop,Brainz::LSTM* Robber,nlohmann::json* CopTra
     bool CopWon = false;
     bool RobberWon = false;
     std::vector<Brainz::LSTM*> temp;
+    std::cout<<"Epoch: "<<e<<std::endl;
 
     std::cout<<"Training Cop..."<<std::endl;
 
@@ -393,6 +396,7 @@ void CopsVsRobbers(Brainz::LSTM* Cop,Brainz::LSTM* Robber,nlohmann::json* CopTra
       }
     }
     std::cout<<"Training Robber..."<<std::endl;
+    robbers.push_back(Robber);
     //train robber
     while(!RobberWon)
     {
@@ -456,6 +460,7 @@ void CopsVsRobbers(Brainz::LSTM* Cop,Brainz::LSTM* Robber,nlohmann::json* CopTra
         }
       
       }
+      
       //set new cop array
       robbers = temp;
 
@@ -463,6 +468,7 @@ void CopsVsRobbers(Brainz::LSTM* Cop,Brainz::LSTM* Robber,nlohmann::json* CopTra
       Errors = new std::vector<double>;
       threads = {};
       int ro = ROUNDNUM(sorted[0])
+      
 
       if( ro <= TOLERANCE)
       {
@@ -482,14 +488,12 @@ int main() {
   Brainz::LSTM *cop = new Brainz::LSTM();
   Brainz::LSTM *robber = new Brainz::LSTM();
 
-  //load bot brain matrix
-  std::ifstream file;
 
   //make/load cop
   if(exists("bot/CopBrain.json"))
   {
-
-    file.open("bot/CopBrain.json");
+    //load bot brain matrix
+    std::ifstream file("bot/CopBrain.json");
     auto j = nlohmann::json::parse(file);
     cop->Load(j);
     file.close();
@@ -502,7 +506,8 @@ int main() {
   //make/load robber
   if(exists("bot/RobberBrain.json"))
   {
-    file.open("bot/RobberBrain.json");
+    //load bot brain matrix
+    std::ifstream file("bot/RobberBrain.json");
     auto j = nlohmann::json::parse(file);
     robber->Load(j);
     file.close();
@@ -547,11 +552,11 @@ int main() {
 
   //save Trianing datas
   std::ofstream ofile;
-  ofile.open("Training/Cop-TrainingData.json");
+  ofile.open("Training/CopTrainingData.json");
   ofile << CopTrainingData;
   ofile.close();
 
-  ofile.open("Training/Robber-TrainingData.json");
+  ofile.open("Training/RobberTrainingData.json");
   ofile << RobberTrainingData;
   ofile.close();
 

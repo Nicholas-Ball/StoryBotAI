@@ -586,7 +586,7 @@ void Brainz::LSTM::Load(nlohmann::json j)
   this->network["Tanh2"] = Tanh2; 
 
   //load memory
-  this->memory = j["Memory"];
+  this->memory = 0.0;
 }
 
 nlohmann::json Brainz::LSTM::Mutate()
