@@ -12,7 +12,7 @@ class QMath{
     static double Tanh(double num)
     {
       // y = x / 1+|x| 
-      return (num/(1.0+fabs(num)));
+      return (num/(1.0+ABS(num)));
     }
 
     //sigmoid function
@@ -37,8 +37,6 @@ class QMath{
     {
       // if x > 0; y = x; else y = 0
       return (num >= 0) * num;
-    }
-
-    
+    } 
 
 };
