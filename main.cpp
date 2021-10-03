@@ -19,8 +19,8 @@
 
 
 
-const int CREATURE_COUNT = 500;
-const int EPOCHES = 1000;
+const int CREATURE_COUNT = 100;
+const int EPOCHES = 10000;
 const double SURVIVAL_RATE = 0.5;
 const int TOLERANCE = 0;
 
@@ -437,12 +437,14 @@ void CopsVsRobbers(Brainz::LSTM* Cop,Brainz::LSTM* Robber,nlohmann::json* CopTra
       //sort data
       auto sorted = MergeSort(*Errors);
 
-    /*
+      /*
       for(int s = 0; s != sorted.size();s++)
       {
         std::cout<<sorted[s] << " ";
-      }*/
+      }
       std::cout<<"\n";
+      std::cout<<sorted.size()<<"\n";
+      */
 
       std::vector<Brainz::LSTM*> temp;
       std::vector<double> dups;
@@ -479,6 +481,21 @@ void CopsVsRobbers(Brainz::LSTM* Cop,Brainz::LSTM* Robber,nlohmann::json* CopTra
       }
 
     }
+    
+
+      std::vector<std::string> dupsI;
+      std::vector<int> dupsO;
+      //clean up training data (remove duplicates)
+      for(int t = 0; t != CopTrainingData->at("Inputs").size();t++)
+      {
+        if(ValueToIndex(dupsI,CopTrainingData->at("Inputs")[t].get<std::string>()) == -1)
+      {
+          dupsI.push_back(CopTrainingData->at("Inputs")[t]);
+          dupsO.push_back(CopTrainingData->at("Output")[t]);
+      }
+      }
+      CopTrainingData->at("Inputs") = dupsI;
+      CopTrainingData->at("Output") = dupsO;
   }
 }
 
@@ -549,6 +566,47 @@ int main() {
 
   //train robber and cop ai
   CopsVsRobbers(cop,robber,&CopTrainingData,&RobberTrainingData);
+  
+  std::vector<int> sentenceI;
+
+  auto ini = TextToInts("Hi! how have you been?");
+
+  //initiale network
+  for(int i = 0;i != ini.size();i++)
+  {
+    robber->Run(ini[i]);
+  }
+
+  double out = (double)ini[ini.size()-1]; 
+
+  //make a sentence
+  for(int i = 0;i != 20;i++)
+  {
+    out = robber->Run(out);
+
+    auto o = ROUNDNUM((out*1000));
+
+    sentenceI.push_back(o);
+  }
+
+  std::cout<<IntsToText(sentenceI)<<"\n";
+
+  
+
+    std::vector<std::string> dupsI;
+    std::vector<int> dupsO;
+    //clean up training data (remove duplicates)
+    for(int t = 0; t != CopTrainingData["Inputs"].size();t++)
+    {
+      if(ValueToIndex(dupsI,CopTrainingData["Inputs"][t].get<std::string>()) == -1)
+      {
+        dupsI.push_back(CopTrainingData["Inputs"][t]);
+        dupsO.push_back(CopTrainingData["Output"][t]);
+      }
+    }
+    CopTrainingData["Inputs"] = dupsI;
+    CopTrainingData["Output"] = dupsO;
+
 
   //save Trianing datas
   std::ofstream ofile;
